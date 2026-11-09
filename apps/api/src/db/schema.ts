@@ -504,3 +504,56 @@ export const messageMessages = pgTable(
     index("message_messages_created_at_idx").on(t.createdAt),
   ]
 );
+
+export const homeworks = pgTable(
+  "homeworks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    classId: uuid("class_id")
+      .notNull()
+      .references(() => classes.id, { onDelete: "cascade" }),
+    sectionId: uuid("section_id").references(() => sections.id, { onDelete: "set null" }),
+    subject: text("subject").notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    dueDate: timestamp("due_date"),
+    submissionType: text("submission_type").notNull().default("none"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("homeworks_tenant_id_idx").on(t.tenantId),
+    index("homeworks_class_section_idx").on(t.classId, t.sectionId),
+  ]
+);
+
+export const homeworkSubmissions = pgTable(
+  "homework_submissions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    homeworkId: uuid("homework_id")
+      .notNull()
+      .references(() => homeworks.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    fileUrl: text("file_url"),
+    textAnswer: text("text_answer"),
+    status: text("status").notNull().default("submitted"),
+    feedback: text("feedback"),
+    submittedAt: timestamp("submitted_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("homework_submissions_tenant_id_idx").on(t.tenantId),
+    index("homework_submissions_homework_id_idx").on(t.homeworkId),
+    index("homework_submissions_student_id_idx").on(t.studentId),
+  ]
+);
