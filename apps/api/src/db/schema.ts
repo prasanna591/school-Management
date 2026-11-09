@@ -721,6 +721,55 @@ export const boardingEvents = pgTable(
   ]
 );
 
+export const gatePasses = pgTable(
+  "gate_passes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    guardianName: text("guardian_name").notNull(),
+    guardianPhone: text("guardian_phone").notNull(),
+    qrCode: text("qr_code").notNull().unique(),
+    expiresAt: timestamp("expires_at").notNull(),
+    usedAt: timestamp("used_at"),
+    status: text("status").notNull().default("active"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("gate_passes_tenant_id_idx").on(t.tenantId),
+    index("gate_passes_qr_code_idx").on(t.qrCode),
+    index("gate_passes_student_id_idx").on(t.studentId),
+  ]
+);
+
+export const visitorLogs = pgTable(
+  "visitor_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    visitorName: text("visitor_name").notNull(),
+    visitorPhone: text("visitor_phone"),
+    purpose: text("purpose"),
+    hostId: uuid("host_id").references(() => users.id, { onDelete: "set null" }),
+    checkIn: timestamp("check_in").notNull().defaultNow(),
+    checkOut: timestamp("check_out"),
+    status: text("status").notNull().default("checked_in"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("visitor_logs_tenant_id_idx").on(t.tenantId),
+    index("visitor_logs_status_idx").on(t.status),
+  ]
+);
+
 export const approvals = pgTable(
   "approvals",
   {
