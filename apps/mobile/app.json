@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "SmartSchool",
+    "slug": "smartschool",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.smartschool.app"
+    },
+    "android": {
+      "package": "com.smartschool.app",
+      "permissions": [],
+      "googleServicesFile": "./google-services.json"
+    },
+    "plugins": [
+      "expo-router",
+      ["expo-notifications", { "androidMode": "default", "androidColor": "#000000" }],
+      "expo-camera",
+      "expo-local-authentication",
+      "expo-secure-store",
+      "expo-sqlite",
+      "expo-document-picker",
+      "expo-image-picker"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

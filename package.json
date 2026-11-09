@@ -1,0 +1,21 @@
+{
+  "name": "smartschool",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm -r run dev --parallel",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r run test",
+    "db:generate": "pnpm --filter api db:generate",
+    "db:push": "pnpm --filter api db:push",
+    "db:seed": "pnpm --filter api db:seed"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}

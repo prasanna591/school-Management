@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/pnpm/schemas/workspace-manifest.json",
+  "extends": "./tsconfig.shared.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true
+  },
+  "include": ["src/**/*"]
+}
