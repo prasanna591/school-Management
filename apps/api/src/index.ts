@@ -5,6 +5,8 @@ import rateLimit from "@fastify/rate-limit";
 import jwt from "@fastify/jwt";
 import { authRoutes } from "./modules/auth/routes";
 import { tenantRoutes } from "./modules/tenants/routes";
+import { studentsRoutes } from "./modules/students/routes";
+import { guardiansRoutes } from "./modules/guardians/routes";
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -30,6 +32,8 @@ export function buildApp() {
 
   app.register(authRoutes, { prefix: "/api" });
   app.register(tenantRoutes, { prefix: "/api" });
+  app.register(studentsRoutes, { prefix: "/api" });
+  app.register(guardiansRoutes, { prefix: "/api" });
 
   app.get("/api/health", async () => ({ ok: true }));
 
