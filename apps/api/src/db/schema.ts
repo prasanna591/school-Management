@@ -840,6 +840,99 @@ export const timetableEntries = pgTable(
   ]
 );
 
+export const staff = pgTable(
+  "staff",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    employeeNumber: text("employee_number").notNull(),
+    firstName: text("first_name").notNull(),
+    lastName: text("last_name"),
+    designation: text("designation"),
+    department: text("department"),
+    dateOfJoining: timestamp("date_of_joining"),
+    phone: text("phone"),
+    email: text("email"),
+    status: text("status").notNull().default("active"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("staff_tenant_id_idx").on(t.tenantId),
+    index("staff_employee_number_idx").on(t.employeeNumber),
+    index("staff_user_id_idx").on(t.userId),
+  ]
+);
+
+export const salaryStructures = pgTable(
+  "salary_structures",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    staffId: uuid("staff_id")
+      .notNull()
+      .references(() => staff.id, { onDelete: "cascade" }),
+    basicPaise: integer("basic_paise").notNull(),
+    allowancesPaise: integer("allowances_paise").notNull().default(0),
+    deductionsPaise: integer("deductions_paise").notNull().default(0),
+    effectiveFrom: timestamp("effective_from").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("salary_structures_tenant_id_idx").on(t.tenantId), index("salary_structures_staff_id_idx").on(t.staffId)]
+);
+
+export const payrollRuns = pgTable(
+  "payroll_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    month: text("month").notNull(),
+    year: integer("year").notNull(),
+    status: text("status").notNull().default("draft"),
+    totalPaise: integer("total_paise").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("payroll_runs_tenant_id_idx").on(t.tenantId), index("payroll_runs_month_year_idx").on(t.month, t.year)]
+);
+
+export const payslips = pgTable(
+  "payslips",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    payrollRunId: uuid("payroll_run_id")
+      .notNull()
+      .references(() => payrollRuns.id, { onDelete: "cascade" }),
+    staffId: uuid("staff_id")
+      .notNull()
+      .references(() => staff.id, { onDelete: "cascade" }),
+    basicPaise: integer("basic_paise").notNull(),
+    allowancesPaise: integer("allowances_paise").notNull().default(0),
+    deductionsPaise: integer("deductions_paise").notNull().default(0),
+    netPaise: integer("net_paise").notNull(),
+    payslipNumber: text("payslip_number").notNull(),
+    status: text("status").notNull().default("issued"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("payslips_tenant_id_idx").on(t.tenantId),
+    index("payslips_staff_id_idx").on(t.staffId),
+    index("payslips_payroll_run_id_idx").on(t.payrollRunId),
+  ]
+);
+
 export const approvals = pgTable(
   "approvals",
   {
