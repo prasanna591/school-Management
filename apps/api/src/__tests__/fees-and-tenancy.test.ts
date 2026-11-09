@@ -58,3 +58,41 @@ describe("tenant isolation", () => {
     expect(tenantId).not.toBe(otherTenant);
   });
 });
+
+describe("sync conflicts (offline-first)", () => {
+  // Pure business-rule functions mirroring the API handlers' decisions.
+  const isDuplicatePayment = (existingKey: string | null, incomingKey: string) =>
+    existingKey === incomingKey;
+
+  const canEnterMarks = (isLocked: boolean) => !isLocked;
+
+  const canEditAttendance = (sessionDate: Date, now: Date, editWindowDays: number) => {
+    const diffDays = (now.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24);
+    return diffDays <= editWindowDays;
+  };
+
+  it("duplicate outbox send is idempotent (same key rejected)", () => {
+    expect(isDuplicatePayment("key-123", "key-123")).toBe(true);
+    expect(isDuplicatePayment("key-123", "key-456")).toBe(false);
+    expect(isDuplicatePayment(null, "key-123")).toBe(false);
+  });
+
+  it("marks entry rejected on locked exam", () => {
+    expect(canEnterMarks(true)).toBe(false);
+    expect(canEnterMarks(false)).toBe(true);
+  });
+
+  it("attendance edit window: same day allowed, beyond window rejected", () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const lastWeek = new Date(today);
+    lastWeek.setDate(lastWeek.getDate() - 8);
+
+    expect(canEditAttendance(today, today, 1)).toBe(true); // same day
+    expect(canEditAttendance(yesterday, today, 1)).toBe(true); // within 1 day
+    expect(canEditAttendance(lastWeek, today, 1)).toBe(false); // beyond window
+  });
+});
+
