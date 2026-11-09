@@ -24,7 +24,7 @@ const AlertRoot = React.forwardRef<
       role="alert"
       className={cn(
         "relative rounded-lg border p-4 [&>svg]:absolute [&>svg:not([class*='text-']):text-current] [&>svg]:top-4 [&>svg]:left-4 [&>svg]:h-5 [&>svg]:w-5",
-        variants[variant],
+        (variants as Record<string, string>)[variant ?? "default"],
         className
       )}
       {...props}

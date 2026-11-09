@@ -73,4 +73,20 @@ export const CardFooter = React.forwardRef<
 ))
 CardFooter.displayName = "CardFooter"
 
+export const StatCard = React.forwardRef<
+  HTMLDivElement,
+  React.ComponentPropsWithoutRef<"div"> & { className?: string }
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-xl border border-border bg-card text-card-foreground shadow p-6",
+      className
+    )}
+    {...props}
+  />
+))
+StatCard.displayName = "StatCard"
+
 export { Card }
+

@@ -13,6 +13,7 @@
   "dependencies": {
     "@headlessui/react": "^2.0.0",
     "@heroicons/react": "^2.1.0",
+    "@radix-ui/react-slot": "^1.5.0",
     "@smartschool/shared": "workspace:*",
     "@tanstack/react-query": "^5.0.0",
     "@tanstack/react-table": "^8.0.0",

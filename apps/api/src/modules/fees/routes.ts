@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { eq, and, desc } from "drizzle-orm";
 import * as crypto from "crypto";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import {
   db,
   feeHeads,
@@ -361,6 +362,90 @@ export async function feeRoutes(fastify: any) {
         status: payment.status,
         amountPaise: payment.amountPaise,
       });
+    }
+  );
+
+  // PDF receipt generation
+  fastify.get(
+    "/payments/:paymentId/receipt.pdf",
+    async (req: any, reply: any) => {
+      const tenantId = req.user?.tenantId;
+      if (!tenantId) return reply.code(401).send({ code: "unauthorized", message: "no tenant context" });
+
+      const [payment] = await db
+        .select()
+        .from(payments)
+        .where(
+          and(
+            eq(payments.id, req.params.paymentId),
+            eq(payments.tenantId, tenantId),
+            eq(payments.status, "success")
+          )
+        )
+        .limit(1);
+      if (!payment) return reply.code(404).send({ code: "not_found", message: "payment not found" });
+
+      const [student] = await db
+        .select()
+        .from(students)
+        .where(eq(students.id, payment.studentId))
+        .limit(1);
+
+      const pdfDoc = await PDFDocument.create();
+      const page = pdfDoc.addPage([600, 400]);
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+      page.drawText("SmartSchool - Fee Receipt", {
+        x: 50,
+        y: 350,
+        size: 20,
+        font: boldFont,
+        color: rgb(0.1, 0.2, 0.3),
+      });
+      page.drawText(`Receipt #: ${payment.idempotencyKey}`, {
+        x: 50,
+        y: 320,
+        size: 12,
+        font,
+        color: rgb(0.3, 0.3, 0.3),
+      });
+      page.drawText(
+        `Student: ${student?.firstName ?? ""} ${student?.lastName ?? ""}`,
+        { x: 50, y: 290, size: 12, font, color: rgb(0.3, 0.3, 0.3) }
+      );
+      page.drawText(
+        `Amount: ₹${(payment.amountPaise / 100).toFixed(2)}`,
+        { x: 50, y: 260, size: 12, font: boldFont, color: rgb(0.1, 0.2, 0.3) }
+      );
+      page.drawText(
+        `Date: ${new Date(payment.paidAt ?? Date.now()).toLocaleDateString()}`,
+        { x: 50, y: 230, size: 12, font, color: rgb(0.3, 0.3, 0.3) }
+      );
+      page.drawText(`Channel: ${payment.channel ?? "N/A"}`, {
+        x: 50,
+        y: 200,
+        size: 12,
+        font,
+        color: rgb(0.3, 0.3, 0.3),
+      });
+      page.drawText(`Gateway Ref: ${payment.gatewayReference ?? "N/A"}`, {
+        x: 50,
+        y: 170,
+        size: 12,
+        font,
+        color: rgb(0.3, 0.3, 0.3),
+      });
+
+      const pdfBytes = await pdfDoc.save();
+
+      reply
+        .header("Content-Type", "application/pdf")
+        .header(
+          "Content-Disposition",
+          `attachment; filename=receipt-${payment.idempotencyKey}.pdf`
+        )
+        .send(pdfBytes);
     }
   );
 }

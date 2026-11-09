@@ -22,6 +22,10 @@ import { admissionsRoutes } from "./modules/admissions/routes";
 import { timetableRoutes } from "./modules/timetable/routes";
 import { hrRoutes } from "./modules/hr/routes";
 import { libraryRoutes } from "./modules/library/routes";
+import { notificationRoutes } from "./modules/notifications/routes";
+import { communicationRoutes } from "./modules/communications/routes";
+import { fileRoutes } from "./modules/files/routes";
+import { exportRoutes } from "./modules/exports/routes";
 import { registerAuthz } from "./lib/authz";
 import { checkRateLimit } from "./lib/rateLimit";
 import { setTenantContext } from "./db/index";
@@ -103,6 +107,10 @@ export function buildApp() {
   app.register(timetableRoutes, { prefix: "/api" });
   app.register(hrRoutes, { prefix: "/api" });
   app.register(libraryRoutes, { prefix: "/api" });
+  app.register(notificationRoutes, { prefix: "/api" });
+  app.register(communicationRoutes, { prefix: "/api" });
+  app.register(fileRoutes, { prefix: "/api" });
+  app.register(exportRoutes, { prefix: "/api" });
 
   // Authorization guard: permission check + object-level authorization
   registerAuthz(app);

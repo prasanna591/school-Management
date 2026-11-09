@@ -1097,3 +1097,57 @@ export const paymentOrders = pgTable(
     index("payment_orders_gateway_event_idx").on(t.gatewayEventId),
   ]
 );
+
+export const deviceTokens = pgTable(
+  "device_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    deviceId: text("device_id").notNull(),
+    pushToken: text("push_token").notNull(),
+    platform: text("platform").notNull(), // ios, android, web
+    appVersion: text("app_version"),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("device_tokens_tenant_id_idx").on(t.tenantId),
+    index("device_tokens_user_id_idx").on(t.userId),
+    index("device_tokens_device_id_idx").on(t.deviceId),
+    index("device_tokens_platform_idx").on(t.platform),
+  ]
+);
+
+export const inAppNotifications = pgTable(
+  "in_app_notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    category: text("category").notNull(),
+    deepLink: text("deep_link"),
+    isRead: boolean("is_read").notNull().default(false),
+    isEmergency: boolean("is_emergency").notNull().default(false),
+    readAt: timestamp("read_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("in_app_notifications_tenant_id_idx").on(t.tenantId),
+    index("in_app_notifications_user_id_idx").on(t.userId),
+    index("in_app_notifications_is_read_idx").on(t.isRead),
+    index("in_app_notifications_created_at_idx").on(t.createdAt),
+  ]
+);
