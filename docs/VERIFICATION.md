@@ -86,4 +86,39 @@
 - ❌ Cannot smoke-test endpoints against seeded database
 - ❌ Cannot run mobile app against local API
 
+## Stage 2: Design system
+
+| Item | Status | Notes |
+|------|--------|-------|
+| `docs/DESIGN.md` | Created | Principles, tokens, components, patterns, accessibility, motion, tone |
+| `packages/shared/src/tokens.ts` | Created | Color, typography, spacing, radius, motion tokens; light/dark themes; brand palette derivation |
+| Mobile design components | Created | Button, IconButton, Card, Badge, StatusPill, Avatar, ListItem, StatCard, Skeleton, EmptyState, ErrorState, Toast, Field, Sheet, Tabs |
+| Mobile gallery screen | Created | `app/design.tsx` — all components in all states, en/ta, light/dark |
+| Web `/design` route | Not created | Web dashboard not yet built (Stage 3) |
+| typecheck | ✅ Pass | All 3 workspaces |
+| tests | ✅ Pass | 26 passed, 8 skipped |
+
+## Gate status
+
+**Stage 0 gate: PARTIAL**
+
+- ✅ `docker-compose.yml` provided (cannot run without Docker)
+- ✅ `pnpm db:push`/`db:seed`/`dev:api` configured correctly (cannot run without DB)
+- ✅ Typecheck, lint, tests pass
+- ✅ Integration tests written against real Fastify routes via `app.inject` (cannot run without DB)
+- ❌ Cannot show integration test run output (no Postgres available)
+- ❌ Cannot smoke-test endpoints against seeded database
+- ❌ Cannot run mobile app against local API
+
+**Stage 2 gate: PARTIAL**
+
+- ✅ `docs/DESIGN.md` written (~120 lines)
+- ✅ Design tokens in `packages/shared/tokens.ts`
+- ✅ Core mobile components built (14 components)
+- ✅ Mobile component gallery screen
+- ❌ Web `/design` route not created (web dashboard not built yet — Stage 3)
+- ✅ Typecheck passes across all workspaces
+- ✅ 26 tests passing
+
 **To complete Stage 0 gate:** Start Docker Desktop, run `docker compose up -d`, `cp .env.example .env`, `pnpm db:push`, `pnpm db:seed`, then `pnpm test` to see integration tests pass against real Postgres.
+

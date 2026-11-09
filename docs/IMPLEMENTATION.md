@@ -7,7 +7,7 @@ Auto-generated record of everything built across 19 commits. Reference for the c
 - TypeScript everywhere
 - API: Fastify, PostgreSQL, Drizzle ORM, Zod validation, jsonwebtoken
 - Mobile: Expo (React Native) + Expo Router, TanStack Query, Zustand, expo-sqlite, expo-secure-store, i18next
-- Tests: vitest (7 passing, 8 skipped without live Postgres)
+- Tests: vitest (26 passing, 8 skipped without live Postgres)
 - CI: GitHub Actions (typecheck, lint, test)
 
 ## Workspace layout
@@ -34,6 +34,8 @@ packages/shared - shared Zod schemas, TypeScript types, constants
 | 11 | Gate/visitor + consent ledger | Done | gate passes (QR verify), visitor log, consent withdraw | gate QR verify, consent view/withdraw |
 | 12 | Admissions + timetable + HR records | Done | admissions pipeline, timetable clash detection, staff/salary/payslip CRUD | admissions enquiry, timetable view, payslips |
 | Phase 3 | Library | Done | books, issues, return + fine | catalogue, search, issue |
+| Stage 2 | Design system | Done | tokens package (shared), ESLint config | design tokens, 14 UI components, gallery screen |
+
 
 ## Cross-cutting rules implemented
 - **Multi-tenancy**: `tenant_id` on every tenant-owned table, enforced via middleware scope in every route handler
@@ -99,22 +101,23 @@ packages/shared - shared Zod schemas, TypeScript types, constants
 - `app/hr/payslips.tsx` — payslip list
 - `app/admissions.tsx` — enquiry capture
 - `app/timetable.tsx` — timetable by day/period
+- `app/design.tsx` — component gallery (all design tokens/components, en/ta, light/dark)
 - `src/lib/api.ts` — typed fetch client, token management
 - `src/lib/sync.ts` — outbox processor, NetInfo background sync, pullChanges
 - `src/lib/db.ts` — expo-sqlite outbox table, pushOutbox
 - `src/lib/session.ts` — Zustand session (tenant, role, language)
 - `src/lib/i18n.ts` — en/ta/hi strings, init + t helper
-- `src/lib/theme.ts` — design tokens
-- `src/components/ChildSwitcher.tsx` — multi-child header pill switcher
-- `src/features/attendance/hooks/useAttendance.ts` — attendance hook (students, marks, mark mutation)
+- `src/components/design/` — design system: Button, IconButton, Card, Badge, StatusPill, Avatar, ListItem, StatCard, Skeleton, EmptyState, ErrorState, Toast, Field, Sheet, Tabs
 
 ### Shared (packages/shared/src)
 - `constants.ts` — languages, attendance statuses, student lifecycle, fee channels, notification categories, sync entities, money precision, API error codes
 - `schemas.ts` — Zod schemas (tenantId, email, phone, pagination, apiError, sync outbox, idempotency key)
+- `tokens.ts` — design tokens: spacing, radius, motion, typography, neutral/semantic colors, brand palette derivation, light/dark themes, chart palette
 - `types.ts` — Role, User, Tenant, Student, Guardian, Class/Section, Attendance, Fee*, Notice, Homework, SyncCursor, AuditLog, ConsentRecord
 
 ### Tests (apps/api/src/__tests__)
 - `integration.test.ts` — 7 passing pure-logic + health tests, 8 integration tests skipped without live Postgres (fees money logic, sync conflicts, auth, tenants, students, fees)
+- `security.test.ts` — 19 passing security tests: constant-time comparison, permission matrix, rate limit rules, OTP hashing, JWT algorithm/issuer validation, tenant isolation
 
 ### Config / CI
 - `.github/workflows/ci.yml` — typecheck, lint, test on push/PR
@@ -126,7 +129,7 @@ packages/shared - shared Zod schemas, TypeScript types, constants
 - End-to-end (migration + API + mobile screen): done for all 13 modules above
 - Permissions + tenant isolation: enforced in every route; tested conceptually (unit tests)
 - Shared Zod schemas + friendly errors: done
-- Tests for critical logic: 7 passing (money, permissions, sync conflicts), 8 integration tests require live Postgres
+- Tests for critical logic: 26 passing (money, permissions, sync conflicts, security), 8 integration tests require live Postgres
 - Seed script: `db/seed.ts` (demo school, 2 classes, 2 sibling students, parent user)
 - CLAUDE.md + /docs module notes: done
 - No dead code: verified (unused imports removed during typecheck)
