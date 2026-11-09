@@ -12,3 +12,4 @@ export { Toast } from "./Toast";
 export { Field } from "./Field";
 export { Sheet } from "./Sheet";
 export { Tabs } from "./Tabs";
+export { OfflineBanner } from "./OfflineBanner";

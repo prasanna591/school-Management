@@ -110,8 +110,15 @@ export const LIGHT_THEME = {
   border: "#E5E7EB",
   inverse: "#FFFFFF",
   primary: "#0F766E",
+  primaryDark: "#115E59",
   ...NEUTRAL,
   ...SEMANTIC,
+  spacing: SPACING,
+  radius: RADIUS,
+  motion: MOTION,
+  fontSize: FONT_SIZE,
+  fontWeight: FONT_WEIGHT,
+  lineHeight: LINE_HEIGHT,
 } as const;
 
 // Dark theme tokens
@@ -125,8 +132,15 @@ export const DARK_THEME = {
   border: "#334155",
   inverse: "#0F172A",
   primary: "#10B981",
+  primaryDark: "#34d399",
   ...NEUTRAL,
   ...SEMANTIC,
+  spacing: SPACING,
+  radius: RADIUS,
+  motion: MOTION,
+  fontSize: FONT_SIZE,
+  fontWeight: FONT_WEIGHT,
+  lineHeight: LINE_HEIGHT,
 } as const;
 
 // Color-blind-safe chart palette
