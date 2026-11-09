@@ -22,6 +22,9 @@ import { admissionsRoutes } from "./modules/admissions/routes";
 import { timetableRoutes } from "./modules/timetable/routes";
 import { hrRoutes } from "./modules/hr/routes";
 import { libraryRoutes } from "./modules/library/routes";
+import { registerAuthz } from "./lib/authz";
+import { checkRateLimit } from "./lib/rateLimit";
+import { setTenantContext } from "./db/index";
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -32,7 +35,7 @@ export function buildApp() {
     secret: process.env.ACCESS_TOKEN_SECRET || "access-secret-change-me",
   });
 
-  app.addHook("onRequest", async (req: any) => {
+  app.addHook("onRequest", async (req: any, reply: any) => {
     const auth = req.headers.authorization;
     if (auth?.startsWith("Bearer ")) {
       try {
@@ -45,6 +48,37 @@ export function buildApp() {
       } catch {
         req.user = undefined;
       }
+    }
+
+    // Capture raw body for webhook signature verification
+    if (req.url?.startsWith("/api/payments/webhook/")) {
+      req.rawBody = await new Promise<string>((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        req.raw.on("data", (chunk: Buffer) => chunks.push(chunk));
+        req.raw.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+        req.raw.on("error", reject);
+      });
+    }
+
+    // Rate limiting: per user (authenticated) or per IP (unauthenticated)
+    const identifier = req.user?.sub || req.ip || "unknown";
+    const rl = await checkRateLimit({
+      method: req.method,
+      path: req.routerPath ?? req.url,
+      identifier,
+    });
+    if (!rl.allowed) {
+      reply.code(429).send({
+        code: "rate_limited",
+        message: "Too many requests. Please try again later.",
+        retryAfter: Math.max(0, rl.reset - Math.floor(Date.now() / 1000)),
+      });
+      return;
+    }
+
+    // Set tenant context for RLS (after auth, before route handler)
+    if (req.user?.tenantId) {
+      await setTenantContext(req.user.tenantId);
     }
   });
 
@@ -69,6 +103,9 @@ export function buildApp() {
   app.register(timetableRoutes, { prefix: "/api" });
   app.register(hrRoutes, { prefix: "/api" });
   app.register(libraryRoutes, { prefix: "/api" });
+
+  // Authorization guard: permission check + object-level authorization
+  registerAuthz(app);
 
   app.get("/api/health", async () => ({ ok: true }));
 

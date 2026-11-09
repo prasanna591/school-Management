@@ -1,6 +1,15 @@
 import { z } from "zod";
 import { eq, and, desc } from "drizzle-orm";
-import { db, feeHeads, feeStructures, feeLedgerEntries, payments } from "../../db/index";
+import * as crypto from "crypto";
+import {
+  db,
+  feeHeads,
+  feeStructures,
+  feeLedgerEntries,
+  payments,
+  paymentOrders,
+  students,
+} from "../../db/index";
 
 const headSchema = z.object({
   name: z.string().min(1),
@@ -15,6 +24,53 @@ const structureSchema = z.object({
   amountPaise: z.coerce.number().int().nonnegative(),
   dueDate: z.string().datetime().optional(),
 });
+
+const orderSchema = z.object({
+  studentId: z.string().uuid(),
+  amountPaise: z.coerce.number().int().positive(),
+  gateway: z.enum(["upi", "card", "net_banking"]),
+  channel: z.enum(["upi", "card", "net_banking", "cash", "cheque", "dd", "bank_transfer", "payment_link"]).optional(),
+  idempotencyKey: z.string().uuid(),
+});
+
+const webhookSchema = z.object({
+  gatewayEventId: z.string(),
+  orderId: z.string().uuid(),
+  status: z.enum(["success", "failed"]),
+  amountPaise: z.coerce.number().int().nonnegative(),
+  currency: z.string().default("INR"),
+  signature: z.string(),
+  reference: z.string().optional(),
+});
+
+/**
+ * Constant-time signature comparison to prevent timing attacks.
+ */
+function constantTimeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+/**
+ * Verify gateway webhook signature. In production this uses the gateway's
+ * shared secret. Here we use HMAC-SHA256 with GATEWAY_SECRET from env.
+ */
+function verifyGatewaySignature(
+  gateway: string,
+  rawBody: string,
+  signature: string
+): boolean {
+  const secret = process.env.GATEWAY_SECRET || "gateway-secret-change-me";
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(`${gateway}:${rawBody}`)
+    .digest("hex");
+  return constantTimeCompare(expected, signature);
+}
 
 export async function feeRoutes(fastify: any) {
   // Fee heads
@@ -81,15 +137,38 @@ export async function feeRoutes(fastify: any) {
     const { studentId } = req.params;
 
     const charges = await db
-      .select({ id: feeLedgerEntries.id, type: feeLedgerEntries.type, amountPaise: feeLedgerEntries.amountPaise, description: feeLedgerEntries.description, occurredAt: feeLedgerEntries.occurredAt })
+      .select({
+        id: feeLedgerEntries.id,
+        type: feeLedgerEntries.type,
+        amountPaise: feeLedgerEntries.amountPaise,
+        description: feeLedgerEntries.description,
+        occurredAt: feeLedgerEntries.occurredAt,
+      })
       .from(feeLedgerEntries)
-      .where(and(eq(feeLedgerEntries.tenantId, tenantId), eq(feeLedgerEntries.studentId, studentId), eq(feeLedgerEntries.type, "charge")))
+      .where(
+        and(
+          eq(feeLedgerEntries.tenantId, tenantId),
+          eq(feeLedgerEntries.studentId, studentId),
+          eq(feeLedgerEntries.type, "charge")
+        )
+      )
       .orderBy(desc(feeLedgerEntries.occurredAt));
 
     const payments_ = await db
-      .select({ id: payments.id, amountPaise: payments.amountPaise, status: payments.status, paidAt: payments.paidAt })
+      .select({
+        id: payments.id,
+        amountPaise: payments.amountPaise,
+        status: payments.status,
+        paidAt: payments.paidAt,
+      })
       .from(payments)
-      .where(and(eq(payments.tenantId, tenantId), eq(payments.studentId, studentId), eq(payments.status, "success")))
+      .where(
+        and(
+          eq(payments.tenantId, tenantId),
+          eq(payments.studentId, studentId),
+          eq(payments.status, "success")
+        )
+      )
       .orderBy(desc(payments.paidAt));
 
     const totalCharged = charges.reduce((s, c) => s + Number(c.amountPaise), 0);
@@ -105,53 +184,183 @@ export async function feeRoutes(fastify: any) {
     });
   });
 
-  // Record a payment (counter collection / online)
-  const paymentSchema = z.object({
-    studentId: z.string().uuid(),
-    amountPaise: z.coerce.number().int().positive(),
-    channel: z.enum(["upi", "card", "net_banking", "cash", "cheque", "dd", "bank_transfer", "payment_link"]),
-    reference: z.string().optional(),
-    idempotencyKey: z.string().uuid(),
-    description: z.string().optional(),
-  });
+  // --- Server-side payment order (client creates, server owns amount) ---
 
   fastify.post(
-    "/payments",
-    { schema: { body: paymentSchema } },
+    "/payments/orders",
+    { schema: { body: orderSchema } },
     async (req: any, reply: any) => {
       const tenantId = req.user?.tenantId;
       if (!tenantId) return reply.code(401).send({ code: "unauthorized", message: "no tenant context" });
-      const { studentId, amountPaise, channel, reference, idempotencyKey, description } = paymentSchema.parse(req.body);
+      const { studentId, amountPaise, gateway, channel, idempotencyKey } =
+        orderSchema.parse(req.body);
 
-      // Idempotency: if already processed, return existing
-      const [existing] = await db.select().from(payments).where(eq(payments.idempotencyKey, idempotencyKey)).limit(1);
+      // Idempotency: if already created, return existing
+      const [existing] = await db
+        .select()
+        .from(paymentOrders)
+        .where(eq(paymentOrders.idempotencyKey, idempotencyKey))
+        .limit(1);
       if (existing) return reply.send(existing);
 
-      const [payment] = await db
-        .insert(payments)
+      // Verify student belongs to this tenant
+      const [s] = await db
+        .select({ id: students.id, tenantId: students.tenantId })
+        .from(students)
+        .where(eq(students.id, studentId))
+        .limit(1);
+      if (!s || s.tenantId !== tenantId) {
+        return reply.code(404).send({ code: "not_found", message: "student not found" });
+      }
+
+      // Server computes the checkout URL (gateway-specific); amount is server-trusted
+      const checkoutUrl = `${process.env.PUBLIC_BASE_URL || "http://localhost:3001"}/pay/checkout/${idempotencyKey}`;
+
+      const [order] = await db
+        .insert(paymentOrders)
         .values({
           tenantId,
           studentId,
           amountPaise,
-          channel,
-          status: "success",
+          currency: "INR",
+          gateway,
+          channel: channel ?? gateway,
+          status: "pending",
           idempotencyKey,
-          gatewayReference: reference,
-          paidAt: new Date(),
+          checkoutUrl,
         })
         .returning();
 
-      await db.insert(feeLedgerEntries).values({
-        tenantId,
-        studentId,
-        type: "payment",
-        amountPaise,
-        reference,
-        description: description ?? "Payment",
-        occurredAt: new Date(),
+      return reply.code(201).send({
+        id: order.id,
+        status: order.status,
+        amountPaise: order.amountPaise,
+        currency: order.currency,
+        checkoutUrl: order.checkoutUrl,
+        createdAt: order.createdAt,
+      });
+    }
+  );
+
+  // Client polls order status (never marks success from client)
+  fastify.get(
+    "/payments/orders/:id",
+    async (req: any, reply: any) => {
+      const tenantId = req.user?.tenantId;
+      if (!tenantId) return reply.code(401).send({ code: "unauthorized", message: "no tenant context" });
+      const [order] = await db
+        .select()
+        .from(paymentOrders)
+        .where(
+          and(eq(paymentOrders.id, req.params.id), eq(paymentOrders.tenantId, tenantId))
+        )
+        .limit(1);
+      if (!order) return reply.code(404).send({ code: "not_found", message: "order not found" });
+      return reply.send({
+        id: order.id,
+        status: order.status,
+        amountPaise: order.amountPaise,
+        currency: order.currency,
+        paidAt: order.paidAt,
+        gatewayReference: order.gatewayReference,
+      });
+    }
+  );
+
+  // --- Gateway webhook: sole source of truth for payment success ---
+
+  fastify.post(
+    "/payments/webhook/:gateway",
+    async (req: any, reply: any) => {
+      const { gateway } = req.params as { gateway: string };
+      const rawBody = req.rawBody as string;
+      const { gatewayEventId, orderId, status, amountPaise, currency, signature, reference } =
+        webhookSchema.parse(req.body);
+
+      // 1. Verify signature (constant-time compare)
+      if (!verifyGatewaySignature(gateway, rawBody, signature ?? "")) {
+        return reply.code(401).send({ code: "invalid_signature", message: "Invalid webhook signature" });
+      }
+
+      // 2. Load order
+      const [order] = await db
+        .select()
+        .from(paymentOrders)
+        .where(eq(paymentOrders.id, orderId))
+        .limit(1);
+      if (!order) return reply.code(404).send({ code: "not_found", message: "order not found" });
+
+      // 3. Idempotency: same gateway event id already processed
+      if (order.gatewayEventId === gatewayEventId) {
+        return reply.send({ id: order.id, status: order.status });
+      }
+
+      // 4. Validate amount/currency match the order (never trust webhook amount blindly)
+      if (order.amountPaise !== amountPaise || order.currency !== currency) {
+        return reply.code(409).send({
+          code: "amount_mismatch",
+          message: "Webhook amount/currency does not match order",
+        });
+      }
+
+      // 5. Only allow pending -> success/failed transitions
+      if (order.status !== "pending") {
+        return reply.code(409).send({
+          code: "invalid_transition",
+          message: `Cannot transition from ${order.status} to ${status}`,
+        });
+      }
+
+      // 6. Write payment + ledger entry in one transaction
+      const payment = await db.transaction(async (tx) => {
+        const [p] = await tx
+          .insert(payments)
+          .values({
+            tenantId: order.tenantId,
+            studentId: order.studentId,
+            amountPaise: order.amountPaise,
+            channel: (order.channel as any) || order.gateway,
+            status,
+            gatewayReference: reference,
+            gatewayEventId,
+            idempotencyKey: order.idempotencyKey,
+            orderId: order.id,
+            paidAt: status === "success" ? new Date() : null,
+          })
+          .returning();
+
+        if (status === "success") {
+          await tx.insert(feeLedgerEntries).values({
+            tenantId: order.tenantId,
+            studentId: order.studentId,
+            type: "payment",
+            amountPaise: order.amountPaise,
+            reference,
+            description: "Payment via " + gateway,
+            occurredAt: new Date(),
+          });
+        }
+
+        return p;
       });
 
-      return reply.code(201).send(payment);
+      // 7. Update order status
+      await db
+        .update(paymentOrders)
+        .set({
+          status,
+          gatewayReference: reference,
+          gatewayEventId,
+          paidAt: status === "success" ? new Date() : null,
+          updatedAt: new Date(),
+        })
+        .where(eq(paymentOrders.id, order.id));
+
+      return reply.send({
+        id: payment.id,
+        status: payment.status,
+        amountPaise: payment.amountPaise,
+      });
     }
   );
 }

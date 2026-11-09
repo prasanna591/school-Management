@@ -243,6 +243,7 @@ export const guardians = pgTable(
     studentId: uuid("student_id")
       .notNull()
       .references(() => students.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     relationship: text("relationship").notNull(),
     phone: text("phone").notNull(),
@@ -255,6 +256,7 @@ export const guardians = pgTable(
   (t) => [
     index("guardians_tenant_id_idx").on(t.tenantId),
     index("guardians_student_id_idx").on(t.studentId),
+    index("guardians_user_id_idx").on(t.userId),
     index("guardians_phone_idx").on(t.phone),
   ]
 );
@@ -431,6 +433,8 @@ export const payments = pgTable(
     channel: paymentChannelEnum("channel"),
     status: paymentStatusEnum("status").notNull().default("pending"),
     idempotencyKey: text("idempotency_key").unique(),
+    gatewayEventId: text("gateway_event_id"),
+    orderId: uuid("order_id").references(() => paymentOrders.id, { onDelete: "set null" }),
     receiptNumber: text("receipt_number"),
     paidAt: timestamp("paid_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -1059,5 +1063,37 @@ export const libraryIssues = pgTable(
     index("library_issues_book_id_idx").on(t.bookId),
     index("library_issues_student_id_idx").on(t.studentId),
     index("library_issues_status_idx").on(t.status),
+  ]
+);
+
+export const paymentOrders = pgTable(
+  "payment_orders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    amountPaise: integer("amount_paise").notNull(),
+    currency: text("currency").notNull().default("INR"),
+    gateway: text("gateway").notNull(),
+    channel: text("channel"),
+    status: text("status").notNull().default("pending"),
+    gatewayReference: text("gateway_reference"),
+    gatewayEventId: text("gateway_event_id").unique(),
+    idempotencyKey: text("idempotency_key").notNull().unique(),
+    checkoutUrl: text("checkout_url"),
+    paidAt: timestamp("paid_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("payment_orders_tenant_id_idx").on(t.tenantId),
+    index("payment_orders_student_id_idx").on(t.studentId),
+    index("payment_orders_status_idx").on(t.status),
+    index("payment_orders_idempotency_key_idx").on(t.idempotencyKey),
+    index("payment_orders_gateway_event_idx").on(t.gatewayEventId),
   ]
 );
