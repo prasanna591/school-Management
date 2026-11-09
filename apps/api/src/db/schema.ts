@@ -442,3 +442,65 @@ export const payments = pgTable(
     index("payments_idempotency_key_idx").on(t.idempotencyKey),
   ]
 );
+
+export const notices = pgTable(
+  "notices",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    body: text("body"),
+    audience: text("audience").notNull(),
+    audienceIds: jsonb("audience_ids").notNull().default([]),
+    publishedAt: timestamp("published_at"),
+    expiresAt: timestamp("expires_at"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("notices_tenant_id_idx").on(t.tenantId),
+    index("notices_published_at_idx").on(t.publishedAt),
+  ]
+);
+
+export const messageThreads = pgTable(
+  "message_threads",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    title: text("title"),
+    participantIds: jsonb("participant_ids").notNull().default([]),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("message_threads_tenant_id_idx").on(t.tenantId)]
+);
+
+export const messageMessages = pgTable(
+  "message_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    threadId: uuid("thread_id")
+      .notNull()
+      .references(() => messageThreads.id, { onDelete: "cascade" }),
+    senderId: uuid("sender_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    readAt: timestamp("read_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("message_messages_tenant_id_idx").on(t.tenantId),
+    index("message_messages_thread_id_idx").on(t.threadId),
+    index("message_messages_created_at_idx").on(t.createdAt),
+  ]
+);

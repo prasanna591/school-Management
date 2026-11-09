@@ -10,6 +10,8 @@ import { guardiansRoutes } from "./modules/guardians/routes";
 import { attendanceRoutes } from "./modules/attendance/routes";
 import { syncRoutes } from "./modules/sync/routes";
 import { feeRoutes } from "./modules/fees/routes";
+import { noticesRoutes } from "./modules/notices/routes";
+import { messagesRoutes } from "./modules/messages/routes";
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -40,6 +42,8 @@ export function buildApp() {
   app.register(attendanceRoutes, { prefix: "/api" });
   app.register(syncRoutes, { prefix: "/api" });
   app.register(feeRoutes, { prefix: "/api" });
+  app.register(noticesRoutes, { prefix: "/api" });
+  app.register(messagesRoutes, { prefix: "/api" });
 
   app.get("/api/health", async () => ({ ok: true }));
 
