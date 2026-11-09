@@ -17,8 +17,8 @@
   "dependencies": {
     "@fastify/cookie": "^11.0.0",
     "@fastify/cors": "^10.0.0",
-    "@fastify/jwt": "^8.0.0",
-    "@fastify/rate-limit": "^9.0.0",
+    "@fastify/jwt": "^9.1.0",
+    "@fastify/type-provider-zod": "^1.0.3",
     "@smartschool/shared": "workspace:*",
     "@types/jsonwebtoken": "^9.0.10",
     "drizzle-orm": "^0.40.0",
@@ -28,12 +28,14 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^22.0.0",
     "@types/pg": "^8.11.0",
     "drizzle-kit": "^0.30.0",
     "eslint": "^9.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.8.0",
+    "typescript-eslint": "^8.72.1",
     "vitest": "^2.1.0"
   }
 }
