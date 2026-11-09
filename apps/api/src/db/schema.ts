@@ -582,3 +582,54 @@ export const approvals = pgTable(
     index("approvals_status_idx").on(t.status),
   ]
 );
+
+export const leaveRequests = pgTable(
+  "leave_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id").references(() => students.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    startDate: timestamp("start_date").notNull(),
+    endDate: timestamp("end_date").notNull(),
+    reason: text("reason").notNull(),
+    status: text("status").notNull().default("pending"),
+    approvedBy: uuid("approved_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("leave_requests_tenant_id_idx").on(t.tenantId),
+    index("leave_requests_student_id_idx").on(t.studentId),
+    index("leave_requests_status_idx").on(t.status),
+  ]
+);
+
+export const grievances = pgTable(
+  "grievances",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    category: text("category").notNull(),
+    subject: text("subject").notNull(),
+    description: text("description"),
+    status: text("status").notNull().default("open"),
+    assigneeId: uuid("assignee_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("grievances_tenant_id_idx").on(t.tenantId),
+    index("grievances_user_id_idx").on(t.userId),
+    index("grievances_status_idx").on(t.status),
+  ]
+);
