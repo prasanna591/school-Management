@@ -9,6 +9,7 @@ import { studentsRoutes } from "./modules/students/routes";
 import { guardiansRoutes } from "./modules/guardians/routes";
 import { attendanceRoutes } from "./modules/attendance/routes";
 import { syncRoutes } from "./modules/sync/routes";
+import { feeRoutes } from "./modules/fees/routes";
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -38,6 +39,7 @@ export function buildApp() {
   app.register(guardiansRoutes, { prefix: "/api" });
   app.register(attendanceRoutes, { prefix: "/api" });
   app.register(syncRoutes, { prefix: "/api" });
+  app.register(feeRoutes, { prefix: "/api" });
 
   app.get("/api/health", async () => ({ ok: true }));
 

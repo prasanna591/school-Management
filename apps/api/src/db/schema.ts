@@ -351,3 +351,94 @@ export const attendanceRecord = pgTable(
     index("attendance_records_student_id_idx").on(t.studentId),
   ]
 );
+
+export const feeHeads = pgTable(
+  "fee_heads",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    isOptional: boolean("is_optional").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("fee_heads_tenant_id_idx").on(t.tenantId)]
+);
+
+export const feeStructures = pgTable(
+  "fee_structures",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    classId: uuid("class_id").references(() => classes.id, { onDelete: "cascade" }),
+    term: text("term").notNull(),
+    feeHeadId: uuid("fee_head_id")
+      .notNull()
+      .references(() => feeHeads.id, { onDelete: "cascade" }),
+    amountPaise: integer("amount_paise").notNull(),
+    dueDate: timestamp("due_date"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("fee_structures_tenant_id_idx").on(t.tenantId),
+    index("fee_structures_class_term_idx").on(t.classId, t.term),
+  ]
+);
+
+export const feeLedgerEntries = pgTable(
+  "fee_ledger_entries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    type: feeLedgerTypeEnum("type").notNull(),
+    amountPaise: integer("amount_paise").notNull(),
+    reference: text("reference"),
+    description: text("description"),
+    occurredAt: timestamp("occurred_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("fee_ledger_entries_tenant_id_idx").on(t.tenantId),
+    index("fee_ledger_entries_student_id_idx").on(t.studentId),
+    index("fee_ledger_entries_occurred_at_idx").on(t.occurredAt),
+  ]
+);
+
+export const payments = pgTable(
+  "payments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    gateway: text("gateway"),
+    gatewayReference: text("gateway_reference"),
+    amountPaise: integer("amount_paise").notNull(),
+    channel: paymentChannelEnum("channel"),
+    status: paymentStatusEnum("status").notNull().default("pending"),
+    idempotencyKey: text("idempotency_key").unique(),
+    receiptNumber: text("receipt_number"),
+    paidAt: timestamp("paid_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("payments_tenant_id_idx").on(t.tenantId),
+    index("payments_student_id_idx").on(t.studentId),
+    index("payments_idempotency_key_idx").on(t.idempotencyKey),
+  ]
+);
