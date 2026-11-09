@@ -1008,3 +1008,56 @@ export const grievances = pgTable(
     index("grievances_status_idx").on(t.status),
   ]
 );
+
+export const libraryBooks = pgTable(
+  "library_books",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    author: text("author"),
+    isbn: text("isbn").unique(),
+    barcode: text("barcode").unique(),
+    category: text("category"),
+    totalCopies: integer("total_copies").notNull().default(1),
+    availableCopies: integer("available_copies").notNull().default(1),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("library_books_tenant_id_idx").on(t.tenantId),
+    index("library_books_isbn_idx").on(t.isbn),
+    index("library_books_barcode_idx").on(t.barcode),
+  ]
+);
+
+export const libraryIssues = pgTable(
+  "library_issues",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    bookId: uuid("book_id")
+      .notNull()
+      .references(() => libraryBooks.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    issuedAt: timestamp("issued_at").notNull().defaultNow(),
+    dueDate: timestamp("due_date").notNull(),
+    returnedAt: timestamp("returned_at"),
+    finePaise: integer("fine_paise").notNull().default(0),
+    status: text("status").notNull().default("issued"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("library_issues_tenant_id_idx").on(t.tenantId),
+    index("library_issues_book_id_idx").on(t.bookId),
+    index("library_issues_student_id_idx").on(t.studentId),
+    index("library_issues_status_idx").on(t.status),
+  ]
+);
