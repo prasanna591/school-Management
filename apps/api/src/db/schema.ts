@@ -798,6 +798,48 @@ export const admissions = pgTable(
   ]
 );
 
+export const subjects = pgTable(
+  "subjects",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    code: text("code"),
+    classId: uuid("class_id").references(() => classes.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("subjects_tenant_id_idx").on(t.tenantId), index("subjects_class_id_idx").on(t.classId)]
+);
+
+export const timetableEntries = pgTable(
+  "timetable_entries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    classId: uuid("class_id")
+      .notNull()
+      .references(() => classes.id, { onDelete: "cascade" }),
+    sectionId: uuid("section_id").references(() => sections.id, { onDelete: "set null" }),
+    subjectId: uuid("subject_id").references(() => subjects.id, { onDelete: "set null" }),
+    teacherId: uuid("teacher_id").references(() => users.id, { onDelete: "set null" }),
+    room: text("room"),
+    dayOfWeek: integer("day_of_week").notNull(),
+    period: integer("period").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("timetable_entries_tenant_id_idx").on(t.tenantId),
+    index("timetable_entries_class_day_period_idx").on(t.classId, t.dayOfWeek, t.period),
+    index("timetable_entries_teacher_day_period_idx").on(t.teacherId, t.dayOfWeek, t.period),
+  ]
+);
+
 export const approvals = pgTable(
   "approvals",
   {
