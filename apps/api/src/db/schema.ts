@@ -558,6 +558,59 @@ export const homeworkSubmissions = pgTable(
   ]
 );
 
+export const exams = pgTable(
+  "exams",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    term: text("term").notNull(),
+    classId: uuid("class_id").references(() => classes.id, { onDelete: "cascade" }),
+    sectionId: uuid("section_id").references(() => sections.id, { onDelete: "set null" }),
+    subject: text("subject").notNull(),
+    maxMarks: integer("max_marks").notNull(),
+    passMarks: integer("pass_marks").notNull(),
+    isLocked: boolean("is_locked").notNull().default(false),
+    publishedAt: timestamp("published_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("exams_tenant_id_idx").on(t.tenantId),
+    index("exams_class_term_idx").on(t.classId, t.term),
+    index("exams_is_locked_idx").on(t.isLocked),
+  ]
+);
+
+export const marksEntries = pgTable(
+  "marks_entries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    examId: uuid("exam_id")
+      .notNull()
+      .references(() => exams.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    marksObtained: integer("marks_obtained").notNull(),
+    status: text("status").notNull().default("present"),
+    grade: text("grade"),
+    enteredBy: uuid("entered_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("marks_entries_tenant_id_idx").on(t.tenantId),
+    index("marks_entries_exam_id_idx").on(t.examId),
+    index("marks_entries_student_id_idx").on(t.studentId),
+  ]
+);
+
 export const approvals = pgTable(
   "approvals",
   {

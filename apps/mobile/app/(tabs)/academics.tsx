@@ -1,5 +1,5 @@
-import ParentHomeworkScreen from "../homework/parent";
+import ParentReportCardScreen from "../exams/parent";
 
 export default function AcademicsScreen() {
-  return <ParentHomeworkScreen />;
+  return <ParentReportCardScreen />;
 }
