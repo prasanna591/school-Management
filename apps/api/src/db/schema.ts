@@ -611,6 +611,116 @@ export const marksEntries = pgTable(
   ]
 );
 
+export const vehicles = pgTable(
+  "vehicles",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    registrationNumber: text("registration_number").notNull(),
+    type: text("type").notNull(),
+    capacity: integer("capacity").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("vehicles_tenant_id_idx").on(t.tenantId)]
+);
+
+export const routes = pgTable(
+  "routes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    vehicleId: uuid("vehicle_id").references(() => vehicles.id, { onDelete: "set null" }),
+    driverId: uuid("driver_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("routes_tenant_id_idx").on(t.tenantId)]
+);
+
+export const stops = pgTable(
+  "stops",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    routeId: uuid("route_id")
+      .notNull()
+      .references(() => routes.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    sequence: integer("sequence").notNull(),
+    expectedTime: text("expected_time"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("stops_tenant_id_idx").on(t.tenantId), index("stops_route_id_idx").on(t.routeId)]
+);
+
+export const trips = pgTable(
+  "trips",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    routeId: uuid("route_id")
+      .notNull()
+      .references(() => routes.id, { onDelete: "cascade" }),
+    vehicleId: uuid("vehicle_id").references(() => vehicles.id, { onDelete: "set null" }),
+    driverId: uuid("driver_id").references(() => users.id, { onDelete: "set null" }),
+    status: text("status").notNull().default("scheduled"),
+    startedAt: timestamp("started_at"),
+    endedAt: timestamp("ended_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("trips_tenant_id_idx").on(t.tenantId), index("trips_route_id_idx").on(t.routeId)]
+);
+
+export const tripPoints = pgTable(
+  "trip_points",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    latitude: text("latitude").notNull(),
+    longitude: text("longitude").notNull(),
+    recordedAt: timestamp("recorded_at").notNull().defaultNow(),
+  },
+  (t) => [index("trip_points_trip_id_idx").on(t.tripId), index("trip_points_tenant_id_idx").on(t.tenantId)]
+);
+
+export const boardingEvents = pgTable(
+  "boarding_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id").references(() => students.id, { onDelete: "set null" }),
+    stopId: uuid("stop_id").references(() => stops.id, { onDelete: "set null" }),
+    type: text("type").notNull(),
+    recordedAt: timestamp("recorded_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("boarding_events_tenant_id_idx").on(t.tenantId),
+    index("boarding_events_trip_id_idx").on(t.tripId),
+  ]
+);
+
 export const approvals = pgTable(
   "approvals",
   {
