@@ -299,3 +299,55 @@ export const consentRecords = pgTable(
     index("consent_records_user_id_idx").on(t.userId),
   ]
 );
+
+export const attendanceSessions = pgTable(
+  "attendance_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    classId: uuid("class_id")
+      .notNull()
+      .references(() => classes.id, { onDelete: "cascade" }),
+    sectionId: uuid("section_id").references(() => sections.id, { onDelete: "set null" }),
+    date: timestamp("date").notNull(),
+    period: text("period"),
+    isLocked: boolean("is_locked").notNull().default(false),
+    submittedBy: uuid("submitted_by").references(() => users.id, { onDelete: "set null" }),
+    submittedAt: timestamp("submitted_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("attendance_sessions_tenant_id_idx").on(t.tenantId),
+    index("attendance_sessions_class_date_idx").on(t.classId, t.date),
+    index("attendance_sessions_tenant_date_idx").on(t.tenantId, t.date),
+  ]
+);
+
+export const attendanceRecord = pgTable(
+  "attendance_records",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => attendanceSessions.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    status: attendanceStatusEnum("status").notNull().default("present"),
+    remark: text("remark"),
+    markedBy: uuid("marked_by").references(() => users.id, { onDelete: "set null" }),
+    markedAt: timestamp("marked_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("attendance_records_tenant_id_idx").on(t.tenantId),
+    index("attendance_records_session_id_idx").on(t.sessionId),
+    index("attendance_records_student_id_idx").on(t.studentId),
+  ]
+);
