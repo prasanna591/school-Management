@@ -13,6 +13,7 @@ import { feeRoutes } from "./modules/fees/routes";
 import { noticesRoutes } from "./modules/notices/routes";
 import { messagesRoutes } from "./modules/messages/routes";
 import { homeworkRoutes } from "./modules/homework/routes";
+import { principalRoutes } from "./modules/principal/routes";
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -46,6 +47,7 @@ export function buildApp() {
   app.register(noticesRoutes, { prefix: "/api" });
   app.register(messagesRoutes, { prefix: "/api" });
   app.register(homeworkRoutes, { prefix: "/api" });
+  app.register(principalRoutes, { prefix: "/api" });
 
   app.get("/api/health", async () => ({ ok: true }));
 

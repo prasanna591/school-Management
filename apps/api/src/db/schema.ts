@@ -557,3 +557,28 @@ export const homeworkSubmissions = pgTable(
     index("homework_submissions_student_id_idx").on(t.studentId),
   ]
 );
+
+export const approvals = pgTable(
+  "approvals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    entityType: text("entity_type").notNull(),
+    entityId: uuid("entity_id").notNull(),
+    requestedBy: uuid("requested_by").references(() => users.id, { onDelete: "set null" }),
+    status: text("status").notNull().default("pending"),
+    decision: text("decision"),
+    decidedBy: uuid("decided_by").references(() => users.id, { onDelete: "set null" }),
+    decidedAt: timestamp("decided_at"),
+    comment: text("comment"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("approvals_tenant_id_idx").on(t.tenantId),
+    index("approvals_entity_idx").on(t.entityType, t.entityId),
+    index("approvals_status_idx").on(t.status),
+  ]
+);
