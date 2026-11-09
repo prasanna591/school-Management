@@ -19,6 +19,7 @@ import { grievanceRoutes } from "./modules/grievance/routes";
 import { examsRoutes } from "./modules/exams/routes";
 import { transportRoutes } from "./modules/transport/routes";
 import { gateRoutes, consentRoutes } from "./modules/gate/routes";
+import { admissionsRoutes } from "./modules/admissions/routes";
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -59,6 +60,7 @@ export function buildApp() {
   app.register(transportRoutes, { prefix: "/api" });
   app.register(gateRoutes, { prefix: "/api" });
   app.register(consentRoutes, { prefix: "/api" });
+  app.register(admissionsRoutes, { prefix: "/api" });
 
   app.get("/api/health", async () => ({ ok: true }));
 

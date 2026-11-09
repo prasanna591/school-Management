@@ -770,6 +770,34 @@ export const visitorLogs = pgTable(
   ]
 );
 
+export const admissions = pgTable(
+  "admissions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    childName: text("child_name").notNull(),
+    childDob: timestamp("child_dob"),
+    parentName: text("parent_name").notNull(),
+    parentPhone: text("parent_phone").notNull(),
+    parentEmail: text("parent_email"),
+    source: text("source").notNull(),
+    stage: text("stage").notNull().default("new"),
+    followUpDate: timestamp("follow_up_date"),
+    notes: text("notes"),
+    status: text("status").notNull().default("active"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("admissions_tenant_id_idx").on(t.tenantId),
+    index("admissions_parent_phone_idx").on(t.parentPhone),
+    index("admissions_stage_idx").on(t.stage),
+    index("admissions_status_idx").on(t.status),
+  ]
+);
+
 export const approvals = pgTable(
   "approvals",
   {
